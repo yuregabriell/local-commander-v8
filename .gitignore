@@ -1,0 +1,26 @@
+# Runtime downloaded automatically by the portable launcher
+runtime/python/
+runtime/ms-playwright/
+runtime/*.zip
+runtime/get-pip.py
+runtime/setup-portable.ok
+runtime/first_run.flag
+
+# Local Python/build artifacts
+.venv/
+__pycache__/
+*.py[cod]
+*.log
+
+# Local pairing data, credentials, and environment overrides
+device.dpapi
+.env
+.env.*
+credentials*
+secrets*
+
+# OS/editor temporary files
+*.tmp
+*.temp
+Thumbs.db
+Desktop.ini
