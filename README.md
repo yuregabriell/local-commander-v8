@@ -1,54 +1,95 @@
-# Local Commander V8 Portable
+# Local Commander V8.1 Portable
 
-Local Commander conecta um computador Windows ao ChatGPT para executar operações locais autorizadas, como ler ou editar arquivos, executar comandos, usar Git e automatizar o navegador. A V8 Portable é autocontida: o único launcher é `LocalCommander-V8.bat` e ela não instala Python globalmente nem altera o PATH do Windows.
+![Local Commander](assets/local-commander-icon.png)
 
-## Requisitos
+Local Commander connects ChatGPT to an authorized Windows computer through a hosted relay while keeping local permissions authoritative.
 
-- Windows 64 bits;
-- conexão com a internet na primeira execução;
-- uma conta ChatGPT para o pareamento;
-- Git for Windows, somente se você quiser usar operações Git.
+Local Commander V8.1 keeps ChatGPT as the intelligence layer and turns the local
+computer into a stronger execution environment. No local LLM and no local API key
+are required.
 
-## Instalação e uso
+## Two modes
 
-1. Baixe ou clone este repositório e mantenha sua estrutura intacta.
-2. Dê dois cliques em `LocalCommander-V8.bat`.
-3. Na primeira execução, o launcher baixa o Python Embeddable 3.12.10 x64, dependências e, quando disponível, Chromium do Playwright em `runtime/`.
-4. Confirme o código de pareamento no navegador usando a mesma conta ChatGPT.
-5. Abra o plugin Local Commander no ChatGPT e escolha o computador pareado.
+### Tool Mode
+Direct actions such as reading files, running commands, using Git, browser
+automation, screenshots, mouse/keyboard and clipboard.
 
-O setup é automático somente na primeira vez. Python portátil fica em `runtime/python/`, o navegador em `runtime/ms-playwright/` e nada é instalado globalmente.
+### Agent Mode
+ChatGPT can create a task and keep local task state across multiple steps:
+plan/context, checkpoints, pause/resume, validation notes and a final summary.
+The local Agent Mode does **not** invent plans with its own model. ChatGPT remains
+the planner.
 
-## Como conectar ao ChatGPT
+## New in V8.1
 
-O fluxo recomendado é o Hosted Relay:
+- Persistent terminal sessions:
+  - `lc_terminal_start`
+  - `lc_terminal_send`
+  - `lc_terminal_read`
+  - `lc_terminal_stop`
+- Clipboard:
+  - `lc_clipboard_read`
+  - `lc_clipboard_write`
+- Bounded binary transfer:
+  - `lc_binary_read`
+  - `lc_binary_write`
+- Agent task state:
+  - `lc_task_start`
+  - `lc_task_status`
+  - `lc_task_step`
+  - `lc_task_pause`
+  - `lc_task_resume`
+  - `lc_task_cancel`
+  - `lc_task_checkpoint`
+  - `lc_task_complete`
+- Browser snapshots now include a structured inventory of links, buttons and inputs.
+- Dashboard shows Agent Mode state and persistent terminal count.
+- Existing V8 features remain available.
 
-`PC → Local Commander V8 → Hosted Relay → plugin Local Commander → ChatGPT`
+## Installation
 
-Ele não exige expor uma porta pública no computador. O guia visual com links de conexão, pareamento e primeiro teste está em [docs/conectar.html](docs/conectar.html).
+1. Extract the ZIP.
+2. Run `LocalCommander-V8.1.bat`.
+3. On first run, the portable Python runtime and optional Chromium are prepared
+   inside the Local Commander folder.
+4. Complete pairing in the browser.
+5. Connect the Local Commander plugin in ChatGPT.
 
-## Permissões e segurança
+Only `LocalCommander-V8.1.bat` is included. Older V8 launchers are intentionally not bundled.
 
-Por padrão, a V8 usa o perfil `user`, limitado ao perfil do usuário atual do Windows. Só conecte computadores que você controla e revise pedidos de escrita ou execução antes de autorizá-los. As credenciais de pareamento são protegidas pelo Windows e guardadas localmente em `%APPDATA%\LocalCommanderV8`; não fazem parte deste repositório.
+## Important compatibility note
 
-Arquivos de runtime, logs, cookies, tokens, segredos, ambientes virtuais e dados de pareamento são excluídos pelo `.gitignore`. Antes da publicação, o código e a árvore do pacote foram revisados para evitar credenciais ou dados pessoais.
+The V8.1 local agent already implements the new actions, but the ChatGPT Local
+Commander plugin/connector must also expose the new tool names before ChatGPT can
+invoke them directly. Existing V8 actions continue working with the current plugin.
 
-## Atalhos
+## Security
 
-- `Ctrl+Alt+M` — minimizar
-- `Ctrl+Alt+P` — pausar/retomar
-- `Ctrl+Alt+D` — atualizar o dashboard
-- `Ctrl+Alt+H` — abrir a ajuda
-- `Ctrl+Alt+Q` — encerrar
+The same local path profile remains in force. Binary reads/writes and task
+workspaces are routed through the existing path authorization layer. Credentials
+remain protected locally with Windows DPAPI.
 
-## Remover
+The task checkpoint stores metadata, Git HEAD/status and a bounded diff. It does
+not silently create commits or reset the workspace.
 
-Feche com `Ctrl+Alt+Q` e apague a pasta do Local Commander. Para remover também o pareamento local, apague `%APPDATA%\LocalCommanderV8` com o programa fechado.
+See `docs/conectar.html` for the full connection guide.
 
-## Troubleshooting
 
-- **Setup não baixa:** confirme conexão, firewall e antivírus; execute o BAT novamente.
-- **Dispositivo offline:** deixe o BAT aberto e confirme que o pareamento foi feito na mesma conta ChatGPT.
-- **Pareamento expirou:** com o programa fechado, remova `%APPDATA%\LocalCommanderV8\device.dpapi` e abra o BAT novamente.
-- **Automação de navegador indisponível:** abra um Prompt de Comando na pasta do projeto e execute `runtime\python\python.exe -m playwright install chromium`.
-- **Git não funciona:** instale o Git for Windows; o programa procura `git.exe` automaticamente.
+## Dashboard behavior
+
+After first-run setup reaches `[6/6]`, the browser may open the connection/help page.
+That is expected, but the Local Commander terminal must remain open and show the
+V8.1 dashboard while the agent is running.
+
+If the Python agent exits unexpectedly, the launcher now keeps the terminal open,
+shows the exit code, and writes diagnostic logs to `runtime/logs/` instead of
+silently closing the window.
+
+## Download / release asset
+
+For end users, publish `LocalCommander-V8.1-Portable.zip` as the GitHub Release asset. The repository itself should contain source/docs only; the portable Python runtime and Playwright browser are downloaded on first run.
+
+## ChatGPT plugin
+
+The private Local Commander plugin currently uses the same hosted relay. Plugin page:
+`https://chatgpt.com/plugins/plugins_6acd2b0fb8a48191b53aaf4c28044e1a`

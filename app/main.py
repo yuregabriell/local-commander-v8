@@ -1,11 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 import os, sys, json, time, ssl, uuid, ctypes, threading, subprocess, shutil
+import ctypes.wintypes
 import urllib.request, urllib.error, webbrowser
 from pathlib import Path
 from collections import deque
 
-VERSION = "0.8-desktop"
+# Python embeddable uses an isolated sys.path via python*._pth.
+# Explicitly add this app directory so sibling modules can be imported.
+APP_DIR = Path(__file__).resolve().parent
+if str(APP_DIR) not in sys.path:
+    sys.path.insert(0, str(APP_DIR))
+
+import v81_features as v81
+
+VERSION = "0.8.1-desktop"
 RELAY = "https://local-commander-relay-yure.amberdill2.chatgpt.site"
 PLUGIN_URL = "https://chatgpt.com/plugins/plugins_6acd2b0fb8a48191b53aaf4c28044e1a"
 
@@ -18,6 +27,10 @@ CRED_FILE = APPDATA / "device.dpapi"
 CONFIG_FILE = APPDATA / "config.json"
 LOG_FILE = APPDATA / "agent.log"
 FIRST_RUN = RUNTIME / "first_run.flag"
+LOG_DIR = RUNTIME / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+APP_LOG = LOG_DIR / "local-commander.log"
+CRASH_LOG = LOG_DIR / "crash.log"
 STOP = threading.Event()
 PAUSED = threading.Event()
 ACTIVITY = deque(maxlen=8)
@@ -311,7 +324,28 @@ def lc_browser_open(url=None,**kw):
 def lc_browser_snapshot(**kw):
     try:
         p=_browser_page()
-        return {"url":p.url,"title":p.title(),"text":p.locator("body").inner_text(timeout=5000)[:30000]}
+        text=p.locator("body").inner_text(timeout=5000)[:30000]
+        elements=[]
+        try:
+            loc=p.locator("a,button,input,textarea,select,[role=button]")
+            n=min(loc.count(),120)
+            for i in range(n):
+                el=loc.nth(i)
+                try:
+                    elements.append({
+                        "index":i,
+                        "tag":el.evaluate("(e)=>e.tagName.toLowerCase()"),
+                        "text":(el.inner_text(timeout=500) or "")[:180],
+                        "aria":el.get_attribute("aria-label"),
+                        "name":el.get_attribute("name"),
+                        "type":el.get_attribute("type"),
+                        "placeholder":el.get_attribute("placeholder"),
+                    })
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        return {"url":p.url,"title":p.title(),"text":text,"elements":elements}
     except Exception as e:return {"ok":False,"error":str(e)}
 
 def lc_browser_click(selector=None,text=None,**kw):
@@ -376,6 +410,59 @@ def lc_output_read(output_id=None,offset=0,limit=3000,**kw):
     raw=item["text"];o=max(0,int(offset));n=min(max(100,int(limit)),6000)
     return {"text":raw[o:o+n],"next_offset":o+n if o+n<len(raw) else None,"total_chars":len(raw)}
 
+def lc_terminal_start(command=None,cwd=None,shell="cmd",**kw):
+    wd=str(resolve_path(cwd)) if cwd else None
+    return v81.terminal_start(command=command,cwd=wd,shell=shell)
+
+def lc_terminal_send(session_id=None,text="",newline=True,**kw):
+    return v81.terminal_send(str(session_id),str(text),bool(newline))
+
+def lc_terminal_read(session_id=None,offset=0,limit=6000,**kw):
+    return v81.terminal_read(str(session_id),offset,limit)
+
+def lc_terminal_stop(session_id=None,**kw):
+    return v81.terminal_stop(str(session_id))
+
+def lc_clipboard_read(**kw):
+    return v81.clipboard_read()
+
+def lc_clipboard_write(text="",**kw):
+    return v81.clipboard_write(str(text))
+
+def lc_binary_read(path=None,offset=0,limit=65536,**kw):
+    p=resolve_path(path)
+    return v81.binary_read(str(p),offset,limit)
+
+def lc_binary_write(path=None,data_base64=None,offset=None,append=False,truncate=False,create_dirs=True,**kw):
+    p=resolve_path(path)
+    return v81.binary_write(str(p),str(data_base64 or ""),offset,append,truncate,create_dirs)
+
+def lc_task_start(goal=None,workspace=None,plan=None,auto_tests=True,auto_commit=False,**kw):
+    ws=str(resolve_path(workspace)) if workspace else None
+    return v81.task_start(str(goal or ""),ws,plan,auto_tests,auto_commit)
+
+def lc_task_status(task_id=None,**kw):
+    return v81.task_status(task_id)
+
+def lc_task_step(task_id=None,title="",action=None,result=None,status="completed",validation=None,**kw):
+    return v81.task_step(str(task_id),title,action,result,status,validation)
+
+def lc_task_pause(task_id=None,**kw):
+    return v81.task_pause(str(task_id))
+
+def lc_task_resume(task_id=None,**kw):
+    return v81.task_resume(str(task_id))
+
+def lc_task_cancel(task_id=None,reason=None,**kw):
+    return v81.task_cancel(str(task_id),reason)
+
+def lc_task_checkpoint(task_id=None,workspace=None,label=None,**kw):
+    ws=str(resolve_path(workspace)) if workspace else None
+    return v81.task_checkpoint(str(task_id),ws,label)
+
+def lc_task_complete(task_id=None,summary=None,**kw):
+    return v81.task_complete(str(task_id),summary)
+
 def unsupported(**kw): return {"unsupported":True}
 
 TOOLS={
@@ -387,7 +474,7 @@ TOOLS={
 "lc_browser_fill":lc_browser_fill,"lc_browser_press":lc_browser_press,"lc_browser_close":lc_browser_close,
 "lc_desktop_screenshot":lc_desktop_screenshot,"lc_desktop_move":lc_desktop_move,"lc_desktop_click":lc_desktop_click,
 "lc_desktop_type":lc_desktop_type,"lc_desktop_hotkey":lc_desktop_hotkey,"lc_approval_status":lc_approval_status,
-"lc_output_read":lc_output_read,"lc_load_project_context":unsupported,"lc_ensure_project_memory":unsupported,
+"lc_output_read":lc_output_read,"lc_terminal_start":lc_terminal_start,"lc_terminal_send":lc_terminal_send,"lc_terminal_read":lc_terminal_read,"lc_terminal_stop":lc_terminal_stop,"lc_clipboard_read":lc_clipboard_read,"lc_clipboard_write":lc_clipboard_write,"lc_binary_read":lc_binary_read,"lc_binary_write":lc_binary_write,"lc_task_start":lc_task_start,"lc_task_status":lc_task_status,"lc_task_step":lc_task_step,"lc_task_pause":lc_task_pause,"lc_task_resume":lc_task_resume,"lc_task_cancel":lc_task_cancel,"lc_task_checkpoint":lc_task_checkpoint,"lc_task_complete":lc_task_complete,"lc_load_project_context":unsupported,"lc_ensure_project_memory":unsupported,
 "lc_android_mkdir":unsupported,"lc_android_ui":unsupported,"lc_android_swipe":unsupported,"lc_android_back":unsupported,"lc_android_home":unsupported}
 
 def compact(v):
@@ -415,7 +502,7 @@ def pair():
     _,d=post_json("/api/relay/start",{"name":os.environ.get("COMPUTERNAME") or "Windows PC"})
     c={"device_id":d["device_id"],"device_token":d["device_token"]};save_creds(c)
     clear()
-    print("LOCAL COMMANDER V8 - PRIMEIRA CONEXAO\n")
+    print("LOCAL COMMANDER V8.1 - PRIMEIRA CONEXAO\n")
     print("Codigo:",d.get("code",""))
     print("Pagina:",d.get("connect_url",RELAY))
     print("\nO navegador sera aberto para confirmar este computador.")
@@ -432,13 +519,17 @@ def draw(state="ONLINE",creds=None):
     clear()
     color = "●"
     print("┌──────────────────────────────────────────────┐")
-    print("│              LOCAL COMMANDER V8              │")
+    print("│             LOCAL COMMANDER V8.1             │")
     print("├──────────────────────────────────────────────┤")
     print(line("Status", color+" "+state))
     print(line("Computador",os.environ.get("COMPUTERNAME","Windows PC")))
     print(line("Relay","CONNECTED" if creds else "NOT PAIRED"))
     print(line("Plugin","Local Commander"))
     print(line("Perfil",CONFIG.get("access_mode","user")))
+    task=v81.task_current_summary()
+    print(line("Agent Mode",("● "+task.get("status","idle").upper()) if task else "○ IDLE"))
+    if task: print(line("Task",task.get("goal","")[:31]))
+    print(line("Terminais",v81.terminal_summary().get("count",0)))
     roots="; ".join(str(x) for x in allowed_roots())
     print(line("Acesso",roots))
     print("├──────────────────────────────────────────────┤")
@@ -493,8 +584,7 @@ def first_run_help():
 
 def main():
     if os.name!="nt":
-        print("Local Commander V8 Desktop is intended for Windows.");return 2
-    first_run_help()
+        print("Local Commander V8.1 Desktop is intended for Windows.");return 2
     creds=load_creds()
     if not creds:
         creds=pair()
@@ -502,6 +592,7 @@ def main():
     threading.Thread(target=hotkey_loop,args=(creds,),daemon=True).start()
     if CONFIG.get("start_minimized"):minimize()
     draw("ONLINE",creds)
+    first_run_help()
     delay=2
     last_draw=time.time()
     while not STOP.is_set():
@@ -534,8 +625,21 @@ def main():
             draw("OFFLINE",creds);time.sleep(min(delay,30));delay=min(delay*2,30)
     try:lc_browser_close()
     except:pass
-    clear();print("Local Commander V8 encerrado.")
+    clear();print("Local Commander V8.1 encerrado.")
     return 0
 
 if __name__=="__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception:
+        import traceback
+        text=traceback.format_exc()
+        try:
+            LOG_DIR.mkdir(parents=True,exist_ok=True)
+            CRASH_LOG.write_text(text,encoding="utf-8")
+        except Exception:
+            pass
+        print("\n\nFALHA FATAL NO LOCAL COMMANDER V8.1\n")
+        print(text)
+        print("\nO erro foi salvo em:",CRASH_LOG)
+        sys.exit(99)

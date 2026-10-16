@@ -1,26 +1,21 @@
-# Runtime downloaded automatically by the portable launcher
+# Local Commander V8.1 generated/runtime files
 runtime/python/
 runtime/ms-playwright/
 runtime/*.zip
 runtime/get-pip.py
 runtime/setup-portable.ok
 runtime/first_run.flag
-
-# Local Python/build artifacts
 .venv/
 __pycache__/
-*.py[cod]
+*.pyc
+*.pyo
 *.log
-
-# Local pairing data, credentials, and environment overrides
-device.dpapi
 .env
 .env.*
+device.dpapi
 credentials*
 secrets*
-
-# OS/editor temporary files
 *.tmp
-*.temp
-Thumbs.db
-Desktop.ini
+*.bak
+runtime/logs/
+.DS_Store
