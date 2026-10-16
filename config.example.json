@@ -1,7 +1,0 @@
-{
-  "access_mode": "user",
-  "allowed_roots": [
-    "%USERPROFILE%"
-  ],
-  "start_minimized": false
-}
