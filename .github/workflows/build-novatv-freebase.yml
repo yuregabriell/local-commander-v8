@@ -1,8 +1,8 @@
-name: Nova TV v0.4 Personalized
+name: Nova TV v0.5 Hisense
 on:
   push:
     branches:
-      - feature/novatv-free-my-tv
+      - feature/novatv-v05
   workflow_dispatch:
 permissions:
   contents: write
@@ -26,10 +26,12 @@ jobs:
         run: |
           cp novatv-free-base/patch_safe_preview.py upstream/patch_safe_preview.py
           cp novatv-free-base/patch_v04.py upstream/patch_v04.py
+          cp novatv-free-base/patch_v05.py upstream/patch_v05.py
           cp novatv-free-base/generate_assets.py upstream/generate_assets.py
           cd upstream
           python3 patch_safe_preview.py
           python3 patch_v04.py
+          python3 patch_v05.py
           python3 generate_assets.py
           cp config.example.properties config.properties
           cat >>config.properties <<'EOF'
@@ -50,17 +52,17 @@ jobs:
           cd upstream
           bash build.sh
           mkdir -p ../out
-          cp FreeMyTV.apk ../out/NovaTV-v0.4-Hisense.apk
+          cp FreeMyTV.apk ../out/NovaTV-v0.5-Hisense.apk
           cp LICENSE ../out/MIT_LICENSE_UPSTREAM.txt
           cp ../novatv-free-base/README.md ../out/README-LEIA-ME.txt
           ls -lh ../out/
       - uses: actions/upload-artifact@v4
         with:
-          name: NovaTV-v0.4-Hisense
+          name: NovaTV-v0.5-Hisense
           path: out/*
           if-no-files-found: error
       - name: Publish preview release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view "novatv-freebase-v0.4" >/dev/null 2>&1 || gh release create "novatv-freebase-v0.4" out/NovaTV-v0.4-Hisense.apk out/MIT_LICENSE_UPSTREAM.txt out/README-LEIA-ME.txt --target "$GITHUB_SHA" --title "Nova TV v0.4 — Fundos, demo de filmes e favoritos" --notes "Nova TV v0.4 (Hisense 32A4HA / Android TV 11): baseada no Free My TV Android (MIT, SHA 7e6754c). Inclui 1 wallpaper fotográfico 1920x1080 16:9 (fonte Unsplash, fallback local), seleção/restauro do fundo por Home Settings > Papel de parede, três cartões de filmes e séries FICTÍCIOS offline enquanto Nova Play não está ligada, e edição nativa da dock por Settings > Shelf ou OK prolongado. Launcher original preservado, sem root, sem ADB, sem alterações aos serviços do sistema. PRE-RELEASE. Para atualizar a v0.3, desinstala-a previamente se as assinaturas diferirem." --prerelease --latest=false
+          gh release view "novatv-freebase-v0.5" >/dev/null 2>&1 || gh release create "novatv-freebase-v0.5" out/NovaTV-v0.5-Hisense.apk out/MIT_LICENSE_UPSTREAM.txt out/README-LEIA-ME.txt --target "$GITHUB_SHA" --title "Nova TV v0.5 — Fundo Cover, apps e temperatura" --notes "Nova TV v0.5 para Hisense 32A4HA/Android TV 11, Free My TV MIT. Fundo de paisagem sharp 16:9 em modo Cover, sem barras pretas; menu OK prolongado nos destaques para remover/reordenar, e em Todas Apps para adicionar/remover, abrir Informações e iniciar desinstalação nativa Android de apps de utilizador. Temperatura Open-Meteo (só quando dados disponíveis), junto aos ícones superiores. Inclui filmes fictícios de demonstração e papel de parede próprio. Não altera o launcher de fábrica, não usa root/ADB. Pré-release de teste." --prerelease --latest=false
