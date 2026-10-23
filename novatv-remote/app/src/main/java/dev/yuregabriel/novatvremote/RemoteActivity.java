@@ -37,6 +37,22 @@ public final class RemoteActivity extends Activity {
     private LinearLayout column(){LinearLayout l=new LinearLayout(this);l.setOrientation(1);return l;}
     @Override public void onCreate(Bundle saved){
         super.onCreate(saved);
+        try {
+            buildScreen();
+        } catch (Throwable e) {
+            android.util.Log.e("NovaTVRemote","Erro ao iniciar interface",e);
+            TextView fallback = new TextView(this);
+            fallback.setTextColor(Color.WHITE);
+            fallback.setTextSize(17);
+            fallback.setPadding(d(24),d(60),d(24),d(24));
+            fallback.setBackgroundColor(0xff0b1221);
+            fallback.setText("O Nova TV Remote encontrou um problema ao abrir.\n\n"
+                + e.getClass().getSimpleName() + ": " + String.valueOf(e.getMessage())
+                + "\n\nEsta mensagem ajuda a diagnosticar a incompatibilidade.");
+            setContentView(fallback);
+        }
+    }
+    private void buildScreen(){
         getWindow().setStatusBarColor(0xff0b1221);
         getWindow().setNavigationBarColor(0xff0b1221);
         LinearLayout root=column();root.setPadding(d(22),d(32),d(22),d(16));root.setBackgroundColor(0xff0b1221);
@@ -52,7 +68,7 @@ public final class RemoteActivity extends Activity {
         ip.setHintTextColor(0xff7186a2);pin.setHintTextColor(0xff7186a2);
         ip.setHint("IP da TV (ex.: 192.168.1.50)");
         pin.setHint("Código de 6 dígitos");
-        ip.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
+        ip.setInputType(android.text.InputType.TYPE_CLASS_TEXT);
         pin.setInputType(2);
         ip.setText(getPreferences(0).getString("ip",""));
         root.addView(ip,new LinearLayout.LayoutParams(-1,d(58)));
