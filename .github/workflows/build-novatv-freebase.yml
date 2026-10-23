@@ -1,0 +1,62 @@
+name: Nova TV Preview (Free My TV base)
+on:
+  push:
+    branches:
+      - feature/novatv-free-my-tv
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  android-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Checkout MIT-licensed upstream
+        run: |
+          git clone --quiet https://github.com/simbasjungles/free-my-tv.git upstream
+          cd upstream
+          git checkout --quiet --detach 4d739516379976e4cc256e4106f3680d6bb94da8
+          test -f LICENSE && test -f build.sh && test -f app/AndroidManifest.xml
+      - name: Apply safe Hisense preview adaptation
+        run: |
+          cp novatv-free-base/patch_safe_preview.py upstream/patch_safe_preview.py
+          cd upstream
+          python3 patch_safe_preview.py
+          cp config.example.properties config.properties
+          cat >>config.properties <<'EOF'
+          city=Lisboa
+          latitude=38.72
+          longitude=-9.14
+          tmdb_region=PT
+          language=pt
+          currency=EUR
+          temperature=C
+          show_crypto=false
+          hide_animation=false
+          disable_assistant=false
+          EOF
+          cp LICENSE app/assets/NovaTV_UPSTREAM_MIT_LICENSE.txt
+      - name: Build preview APK
+        run: |
+          cd upstream
+          bash build.sh
+          mkdir -p ../out
+          cp FreeMyTV.apk ../out/NovaTV-FreeMyTV-Preview-v0.3.apk
+          cp LICENSE ../out/MIT_LICENSE_UPSTREAM.txt
+          cp ../novatv-free-base/README.md ../out/README-LEIA-ME.txt
+          ls -lh ../out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NovaTV-v0.3-Preview
+          path: out/*
+          if-no-files-found: error
+      - name: Publish preview release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "novatv-freebase-v0.3" >/dev/null 2>&1 || gh release create "novatv-freebase-v0.3" out/NovaTV-FreeMyTV-Preview-v0.3.apk out/MIT_LICENSE_UPSTREAM.txt out/README-LEIA-ME.txt --target "$GITHUB_SHA" --title "Nova TV v0.3 Preview — Free My TV Android base" --notes "Preview de design para Android TV 11. Base: simbasjungles/free-my-tv (MIT, SHA 4d739516). Inspirado também por danielthejoker18/FreeMyTvWebOS (MIT). O Home original e os serviços da Hisense não são alterados; instalação apenas como aplicação. Sem switching via ADB. Recomendações TMDB dependem de chave própria. Projeto experimental." --prerelease --latest=false
