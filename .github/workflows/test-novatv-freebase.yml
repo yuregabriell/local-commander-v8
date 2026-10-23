@@ -1,0 +1,53 @@
+name: Nova TV v0.3 Startup Test
+on:
+  push:
+    branches: [diagnose/novatv-freebase]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          profile: pixel_5
+          ram-size: 2048M
+          disk-size: 4000M
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            git clone --quiet https://github.com/simbasjungles/free-my-tv.git upstream
+            cd upstream
+            git checkout --quiet --detach 4d739516379976e4cc256e4106f3680d6bb94da8
+            python3 ../novatv-free-base/patch_safe_preview.py
+            bash build.sh
+            adb install -r FreeMyTV.apk
+            adb logcat -c
+            adb shell am start -W -n io.freemytv/.HomeActivity
+            sleep 7
+            echo "=== Home process ==="
+            adb shell pidof io.freemytv:home || true
+            echo "=== AndroidRuntime fatal exceptions ==="
+            adb logcat -d -v time -s AndroidRuntime:E '*:S' || true
+            adb shell screencap -p /sdcard/novatv-preview.png || true
+            adb pull /sdcard/novatv-preview.png ../novatv-preview.png || true
+            PID=$(adb shell pidof io.freemytv:home | tr -d '\r')
+            if [ -z "$PID" ]; then
+              echo "Nova TV HomeActivity did not remain running"
+              exit 1
+            fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: NovaTV-v03-emulator-screenshot
+          path: novatv-preview.png
+          if-no-files-found: ignore
