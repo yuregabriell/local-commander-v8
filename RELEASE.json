@@ -1,9 +1,0 @@
-{
-  "version": "8.1",
-  "agent_version": "0.8.1-desktop",
-  "release_date": "2026-10-16",
-  "portable_zip": "LocalCommander-V8.1-Portable.zip",
-  "sha256": "0cb0f972f1b1355349e49e62de17778cd8b87385267289ce96157046e1b798d7",
-  "plugin_version": "1.3.4",
-  "plugin_id": "plugins_6acd2b0fb8a48191b53aaf4c28044e1a"
-}
