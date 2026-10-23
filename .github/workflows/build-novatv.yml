@@ -5,7 +5,7 @@ on:
       - build/novatv-launcher
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,3 +32,13 @@ jobs:
           name: NovaTV-Launcher-and-Remote
           path: out/*.apk
           if-no-files-found: error
+      - name: Publicar Release do launcher
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "novatv-launcher-v0.2" >/dev/null 2>&1 || gh release create "novatv-launcher-v0.2" out/NovaTV-Launcher-v0.2.apk --target "$GITHUB_SHA" --title "Nova TV Launcher v0.2 (Android TV)" --notes "Versão de teste para Hisense 32A4HA com Android TV 11. Interface híbrida, wallpapers, favoritos e controlo por telemóvel. Não substitui o launcher de fábrica." --prerelease --latest=false
+      - name: Publicar Release do controlo Android
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "novatv-remote-v0.1" >/dev/null 2>&1 || gh release create "novatv-remote-v0.1" out/NovaTV-Remote-v0.1.apk --target "$GITHUB_SHA" --title "Nova TV Remote v0.1 (Android)" --notes "Touchpad e comando Wi-Fi para usar com Nova TV Launcher v0.2. Emparelhar pela opção de definições no launcher; funciona apenas dentro do Nova TV. Versão de teste." --prerelease --latest=false
