@@ -18,11 +18,6 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
-      - name: Check Android SDK
-        run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          ls "$ANDROID_HOME/platforms" || true
-          sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
       - name: Build Nova TV
         run: gradle -p novatv --no-daemon :app:assembleDebug
       - name: Rename APK
