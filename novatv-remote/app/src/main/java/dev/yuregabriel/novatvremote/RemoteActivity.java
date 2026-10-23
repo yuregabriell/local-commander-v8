@@ -52,7 +52,7 @@ public final class RemoteActivity extends Activity {
         ip.setHintTextColor(0xff7186a2);pin.setHintTextColor(0xff7186a2);
         ip.setHint("IP da TV (ex.: 192.168.1.50)");
         pin.setHint("Código de 6 dígitos");
-        ip.setInputType(3);
+        ip.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
         pin.setInputType(2);
         ip.setText(getPreferences(0).getString("ip",""));
         root.addView(ip,new LinearLayout.LayoutParams(-1,d(58)));
