@@ -1,0 +1,41 @@
+name: Diagnose Nova TV Remote
+on:
+  push:
+    branches: [diagnose/novatv-remote]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android-emulator-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_5
+          ram-size: 2048M
+          disk-size: 4000M
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            gradle -p novatv-remote --no-daemon :app:assembleDebug
+            adb install -r novatv-remote/app/build/outputs/apk/debug/app-debug.apk
+            adb logcat -c
+            adb shell am start -W -n dev.yuregabriel.novatvremote/.RemoteActivity || true
+            sleep 4
+            echo "===== Activity pid ====="
+            adb shell pidof dev.yuregabriel.novatvremote || true
+            echo "===== Fatal exception ====="
+            adb logcat -d -v time AndroidRuntime:E '*:S' || true
+            echo "===== All app errors ====="
+            adb logcat -d -v time | grep -Ei 'novatvremote|FATAL EXCEPTION|Unable to start activity|ClassNotFoundException|ResourcesNotFoundException' | tail -100 || true
