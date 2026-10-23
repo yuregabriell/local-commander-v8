@@ -1,0 +1,16 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'dev.yuregabriel.novatvremote'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'dev.yuregabriel.novatvremote'
+        minSdk 23
+        targetSdk 32
+        versionCode 1
+        versionName '0.1'
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

@@ -27,6 +27,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ScrollView;
+import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.GridLayout;
 import android.widget.ImageView;
@@ -56,6 +57,13 @@ public final class MainActivity extends Activity {
     private LinearLayout favoritesRow;
     private GridLayout allGrid;
     private TextView clockView;
+    private LinearLayout allRow;
+    private FrameLayout contentRoot;
+    private CursorOverlay cursor;
+    private RemoteServer remoteServer;
+    private AppItem featuredApp;
+    private TextView heroTitle,heroSubtitle,heroLaunch;
+    private ImageView heroIcon;
     private Bitmap photoBitmap;
     private final Runnable updateClock = new Runnable() {
         @Override public void run() {
@@ -85,8 +93,8 @@ public final class MainActivity extends Activity {
         prepareFavorites();
         buildUi();
     }
-    @Override protected void onResume() { super.onResume(); handler.removeCallbacks(updateClock); handler.post(updateClock); }
-    @Override protected void onPause() { handler.removeCallbacks(updateClock); super.onPause(); }
+    @Override protected void onResume() { super.onResume(); handler.removeCallbacks(updateClock); handler.post(updateClock); startRemote(); }
+    @Override protected void onPause() { handler.removeCallbacks(updateClock); if(remoteServer!=null)remoteServer.stop(); super.onPause(); }
     @Override protected void onDestroy() {
         handler.removeCallbacks(updateClock);
         if(photoBitmap != null && !photoBitmap.isRecycled()) photoBitmap.recycle();
@@ -157,105 +165,228 @@ public final class MainActivity extends Activity {
         toast(added?"Adicionado aos favoritos":"Removido dos favoritos");
     }
 
+
     private void buildUi() {
-        FrameLayout root=new FrameLayout(this);
-        scenic=new ScenicBackground(this);scenic.setScene(prefs.getInt("scene",0));
+        FrameLayout root = new FrameLayout(this);
+        contentRoot=root;
+        scenic=new ScenicBackground(this);
+        scenic.setScene(prefs.getInt("scene",0));
         root.addView(scenic,new FrameLayout.LayoutParams(-1,-1));
         photoView=new ImageView(this);photoView.setScaleType(ImageView.ScaleType.CENTER_CROP);
         root.addView(photoView,new FrameLayout.LayoutParams(-1,-1));
         loadPhoto();
         View shade=new View(this);
-        shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-            new int[]{0xf5050b1a,0xc5070d1b,0x70070918}));
+        shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+            new int[]{0xb9080e1b,0x9f080d18,0xed060b13}));
         root.addView(shade,new FrameLayout.LayoutParams(-1,-1));
 
         ScrollView scroll=new ScrollView(this);
-        scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setVerticalScrollBarEnabled(false);
-        LinearLayout page=vertical();page.setPadding(d(54),d(29),d(54),d(37));
+        scroll.setFillViewport(true);
+        scroll.setVerticalScrollBarEnabled(false);
+        scroll.setClipToPadding(false);
+        LinearLayout page=vertical();
+        page.setPadding(d(55),d(28),d(55),d(34));
         scroll.addView(page,new ScrollView.LayoutParams(-1,-2));
         root.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
 
-        LinearLayout header=horizontal();
-        TextView brand=text("◈  NOVA TV",23,WHITE,true);
-        brand.setLetterSpacing(.13f);
-        header.addView(brand);
-        View spacer=new View(this);header.addView(spacer,new LinearLayout.LayoutParams(0,1,1));
-        clockView=text("",22,WHITE,true);
-        LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-2,-2);cp.setMargins(0,0,d(18),0);
-        header.addView(clockView,cp);
-        header.addView(action("Temas",()->cycleTheme()));
-        header.addView(action("Escolher fundo",()->choosePhoto()));
-        header.addView(action("Retirar foto",()->clearPhoto()));
-        header.addView(action("Definições",()->openSettings()));
-        page.addView(header,new LinearLayout.LayoutParams(-1,d(65)));
+        LinearLayout nav=horizontal();
+        TextView start=text("Para você",31,WHITE,true);
+        nav.addView(start);
+        TextView tabs=text("    Explorar     Aplicações",14,0xffc6cede,false);
+        nav.addView(tabs);
+        nav.addView(new View(this),new LinearLayout.LayoutParams(0,1,1));
+        clockView=text("",17,WHITE,true);
+        LinearLayout.LayoutParams c=new LinearLayout.LayoutParams(-2,-2);c.rightMargin=d(20);
+        nav.addView(clockView,c);
+        nav.addView(roundAction("⚙",()->showMenu()));
+        page.addView(nav,new LinearLayout.LayoutParams(-1,d(53)));
 
-        TextView eyebrow=text("A TUA TELEVISÃO, À TUA MANEIRA",12,0xffb7c9ee,true);eyebrow.setLetterSpacing(.23f);
-        LinearLayout.LayoutParams e=new LinearLayout.LayoutParams(-1,-2);e.topMargin=d(47);page.addView(eyebrow,e);
-        TextView hero=text("Bem-vindo a casa.",44,WHITE,true);
-        LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,-2);hp.topMargin=d(6);page.addView(hero,hp);
-        TextView sub=text("Só o que interessa. Todas as tuas aplicações num único lugar.",16,MUTED,false);
-        LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,-2);sp.topMargin=d(8);sp.bottomMargin=d(33);page.addView(sub,sp);
+        FrameLayout hero=new FrameLayout(this);
+        GradientDrawable heroBg=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
+          new int[]{0xee111b31,0xdb233b54,0x787392b3});
+        heroBg.setCornerRadius(d(24));
+        hero.setBackground(heroBg);
+        hero.setClipToOutline(true);
+        LinearLayout heroContent=vertical();
+        heroContent.setPadding(d(30),d(25),d(26),d(18));
+        TextView eyebrow=text("EM DESTAQUE   ·   NOVA TV",11,0xffb4d3f3,true);
+        eyebrow.setLetterSpacing(.20f);
+        heroContent.addView(eyebrow);
+        heroTitle=text("As tuas aplicações.",35,WHITE,true);
+        LinearLayout.LayoutParams h=new LinearLayout.LayoutParams(-1,-2);h.topMargin=d(14);
+        heroContent.addView(heroTitle,h);
+        heroSubtitle=text("Tudo no seu lugar. Sem recomendações nem distrações.",14,0xffc6d5eb,false);
+        heroSubtitle.setMaxLines(2);
+        LinearLayout.LayoutParams subp=new LinearLayout.LayoutParams(-1,-2);subp.topMargin=d(5);
+        heroContent.addView(heroSubtitle,subp);
+        TextView launch=roundAction("Abrir em destaque   ›",()->{ if(featuredApp!=null)launchApp(featuredApp); });
+        heroLaunch=launch;
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(d(215),d(45));lp.topMargin=d(17);
+        heroContent.addView(launch,lp);
+        FrameLayout.LayoutParams hc=new FrameLayout.LayoutParams(d(675),-1,Gravity.LEFT);
+        hero.addView(heroContent,hc);
+        heroIcon=new ImageView(this);heroIcon.setAlpha(.75f);
+        heroIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        FrameLayout.LayoutParams iconp=new FrameLayout.LayoutParams(d(133),d(133),Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+        iconp.rightMargin=d(93);hero.addView(heroIcon,iconp);
+        LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,d(227));hp.topMargin=d(24);
+        page.addView(hero,hp);
 
-        page.addView(section("OS TEUS FAVORITOS"),new LinearLayout.LayoutParams(-1,d(39)));
+        LinearLayout l=horizontal();
+        TextView favoriteTitle=text("As tuas aplicações",19,WHITE,true);
+        l.addView(favoriteTitle);
+        l.addView(new View(this),new LinearLayout.LayoutParams(0,1,1));
+        TextView edit=roundAction("Personalizar   ›",()->showMenu());
+        l.addView(edit,new LinearLayout.LayoutParams(d(148),d(37)));
+        LinearLayout.LayoutParams fl=new LinearLayout.LayoutParams(-1,d(48));fl.topMargin=d(16);
+        page.addView(l,fl);
+        HorizontalScrollView favScroll=new HorizontalScrollView(this);
+        favScroll.setHorizontalScrollBarEnabled(false);favScroll.setClipToPadding(false);
         favoritesRow=horizontal();favoritesRow.setGravity(Gravity.CENTER_VERTICAL|Gravity.LEFT);
-        page.addView(favoritesRow,new LinearLayout.LayoutParams(-1,-2));
-        LinearLayout.LayoutParams h1=new LinearLayout.LayoutParams(-1,d(28));page.addView(new View(this),h1);
-        page.addView(section("TODAS AS APLICAÇÕES"),new LinearLayout.LayoutParams(-1,d(39)));
-        allGrid=new GridLayout(this);allGrid.setColumnCount(5);
-        page.addView(allGrid,new LinearLayout.LayoutParams(-1,-2));
-        TextView footer=text("OK: abrir app    •    Manter OK: adicionar ou remover favorito    •    Voltar: regressar à Hisense",12,0xffa3afc5,false);
-        LinearLayout.LayoutParams fp=new LinearLayout.LayoutParams(-1,-2);fp.topMargin=d(30);page.addView(footer,fp);
+        favScroll.addView(favoritesRow,new HorizontalScrollView.LayoutParams(-2,-2));
+        page.addView(favScroll,new LinearLayout.LayoutParams(-1,d(114)));
+
+        LinearLayout l2=horizontal();
+        TextView allLabel=text("Todas as aplicações",18,WHITE,true);
+        l2.addView(allLabel);
+        LinearLayout.LayoutParams ap=new LinearLayout.LayoutParams(-1,d(46));ap.topMargin=d(12);
+        page.addView(l2,ap);
+        HorizontalScrollView allScroll=new HorizontalScrollView(this);
+        allScroll.setHorizontalScrollBarEnabled(false);allScroll.setClipToPadding(false);
+        allRow=horizontal();allRow.setGravity(Gravity.CENTER_VERTICAL|Gravity.LEFT);
+        allScroll.addView(allRow,new HorizontalScrollView.LayoutParams(-2,-2));
+        page.addView(allScroll,new LinearLayout.LayoutParams(-1,d(106)));
+        TextView help=text("Mantém OK para fixar apps    ·    ⚙ Personalizar    ·    O launcher original continua disponível",12,0xffa4b5cd,false);
+        LinearLayout.LayoutParams foot=new LinearLayout.LayoutParams(-1,-2);
+        foot.topMargin=d(17);page.addView(help,foot);
+
+        cursor=new CursorOverlay(this);cursor.setClickable(false);
+        root.addView(cursor,new FrameLayout.LayoutParams(-1,-1));
         setContentView(root);
         renderApps();
     }
-    private TextView section(String label){
-        TextView t=text(label,14,0xffe9eeff,true);t.setLetterSpacing(.14f);return t;
+    private TextView roundAction(String name,Runnable task) {
+        TextView v=text(name,15,WHITE,true);
+        v.setGravity(Gravity.CENTER);v.setPadding(d(11),0,d(11),0);
+        v.setBackground(focusBackground());decorateFocus(v);
+        v.setOnClickListener(x->task.run());return v;
     }
-    private TextView action(String title,Runnable task){
-        TextView b=text(title,13,WHITE,true);
-        b.setGravity(Gravity.CENTER);
-        b.setPadding(d(13),0,d(13),0);
-        b.setBackground(focusBackground());decorateFocus(b);
-        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,d(40));
-        lp.leftMargin=d(9);b.setLayoutParams(lp);
-        b.setOnClickListener(v->task.run());return b;
-    }
-    private void renderApps() {
-        if(favoritesRow==null)return;
-        favoritesRow.removeAllViews();allGrid.removeAllViews();
-        Set<String> fav=favorites();int count=0;
-        for(AppItem a:apps) {
-            if(fav.contains(a.pkg) && count<7){ favoritesRow.addView(tile(a,true));count++; }
+    private void renderApps(){
+        if(favoritesRow==null||allRow==null)return;
+        favoritesRow.removeAllViews();allRow.removeAllViews();
+        Set<String> chosen=favorites();
+        int count=0;
+        for(AppItem a:apps){if(chosen.contains(a.pkg)){favoritesRow.addView(tile(a,true));count++;}}
+        if(count==0){
+            TextView hint=text("Mantém OK pressionado numa aplicação abaixo para a adicionar aqui.",13,MUTED,false);
+            favoritesRow.addView(hint);
         }
-        if(count==0) {
-            TextView label=text("Mantém OK pressionado sobre uma aplicação para a fixar aqui.",14,MUTED,false);
-            favoritesRow.addView(label);
+        for(AppItem a:apps)allRow.addView(tile(a,false));
+        if(featuredApp==null||!apps.contains(featuredApp)){
+            featuredApp=apps.isEmpty()?null:apps.get(0);
         }
-        for(AppItem a:apps) {
-            GridLayout.LayoutParams p=new GridLayout.LayoutParams();
-            p.width=d(162);p.height=d(121);p.setMargins(d(4),d(4),d(10),d(10));
-            allGrid.addView(tile(a,false),p);
+        if(count>0&&!chosen.contains(featuredApp==null?"":featuredApp.pkg)){
+            for(AppItem a:apps)if(chosen.contains(a.pkg)){featuredApp=a;break;}
         }
+        updateFeatured(featuredApp);
     }
     private View tile(AppItem item,boolean favorite) {
-        LinearLayout tile=vertical();tile.setGravity(Gravity.CENTER);
-        tile.setBackground(focusBackground());tile.setPadding(d(10),d(9),d(10),d(7));
-        if(favorite) {
-            LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(d(162),d(121));p.setMargins(0,d(3),d(14),d(6));
-            tile.setLayoutParams(p);
-        }
-        ImageView icon=new ImageView(this);icon.setImageDrawable(item.icon);
-        icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        tile.addView(icon,new LinearLayout.LayoutParams(d(49),d(49)));
-        TextView t=text(item.title,14,WHITE,true);t.setGravity(Gravity.CENTER);t.setMaxLines(2);
-        t.setEllipsize(TextUtils.TruncateAt.END);
-        LinearLayout.LayoutParams tparams=new LinearLayout.LayoutParams(-1,d(41));tparams.topMargin=d(6);
-        tile.addView(t,tparams);
+        LinearLayout tile=vertical();
+        tile.setGravity(Gravity.CENTER);
+        tile.setPadding(d(11),d(10),d(11),d(9));
+        tile.setBackground(focusBackground());
+        LinearLayout.LayoutParams tileParams=new LinearLayout.LayoutParams(d(favorite?155:138),d(favorite?101:93));
+        tileParams.rightMargin=d(12);
+        if(favorite)tileParams.bottomMargin=d(8);
+        tile.setLayoutParams(tileParams);
+        ImageView img=new ImageView(this);
+        img.setImageDrawable(item.icon);
+        img.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        tile.addView(img,new LinearLayout.LayoutParams(d(favorite?46:39),d(favorite?46:39)));
+        TextView name=text(item.title,13,WHITE,true);
+        name.setGravity(Gravity.CENTER);
+        name.setSingleLine(true);name.setEllipsize(TextUtils.TruncateAt.END);
+        LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(-1,d(27));np.topMargin=d(5);
+        tile.addView(name,np);
         decorateFocus(tile);
+        tile.setOnFocusChangeListener((v,focused)->{
+            v.animate().scaleX(focused?1.048f:1f).scaleY(focused?1.048f:1f).setDuration(130).start();
+            if(focused)updateFeatured(item);
+        });
         tile.setOnClickListener(v->launchApp(item));
         tile.setOnLongClickListener(v->{toggleFavorite(item);return true;});
         return tile;
     }
+    private void updateFeatured(AppItem app){
+        if(app==null||heroTitle==null)return;
+        featuredApp=app;
+        heroTitle.setText(app.title);
+        heroSubtitle.setText("Abre "+app.title+" diretamente a partir da tua televisão.");
+        heroIcon.setImageDrawable(app.icon);
+    }
+    private void showMenu(){
+        String[] choices={"Alterar tema de fundo","Escolher fotografia","Remover fotografia","Emparelhar telemóvel","Definições da TV","Fechar Nova TV"};
+        new android.app.AlertDialog.Builder(this).setTitle("Personalizar Nova TV")
+            .setItems(choices,(dialog,index)->{
+                if(index==0)cycleTheme();
+                else if(index==1)choosePhoto();
+                else if(index==2)clearPhoto();
+                else if(index==3)showPairing();
+                else if(index==4)openSettings();
+                else if(index==5)finish();
+            }).show();
+    }
+    private void showPairing(){
+        String address=RemoteServer.localIp();
+        String pin=remoteServer==null?"Abre novamente Nova TV":remoteServer.pin;
+        new android.app.AlertDialog.Builder(this)
+          .setTitle("Ligar o telemóvel")
+          .setMessage("No APK Nova TV Remote, introduz:\n\nIP: "+address+"\nPorta: 42377\nCódigo: "+pin+
+          "\n\nTelemóvel e TV devem estar na mesma rede Wi-Fi. O controlo funciona apenas enquanto Nova TV estiver aberto.")
+          .setPositiveButton("Entendi",(d,w)->{}).show();
+    }
+    private void startRemote(){
+        if(remoteServer!=null)remoteServer.stop();
+        remoteServer=new RemoteServer(handler,new RemoteServer.Listener(){
+            @Override public void onMove(float dx,float dy){
+                if(cursor==null)return;
+                float x=cursor.cursorX(),y=cursor.cursorY();
+                if(x<0||y<0){x=cursor.getWidth()/2f;y=cursor.getHeight()/2f;}
+                cursor.place(Math.max(0,Math.min(cursor.getWidth()-d(24),x+dx)),
+                    Math.max(0,Math.min(cursor.getHeight()-d(24),y+dy)));
+            }
+            @Override public void onClick(){remoteClick();}
+            @Override public void onBack(){onBackPressed();}
+            @Override public void onNavigate(String key){
+                if("SELECT".equals(key)){View f=getCurrentFocus();if(f!=null)f.performClick();return;}
+                int dir="UP".equals(key)?View.FOCUS_UP:"DOWN".equals(key)?View.FOCUS_DOWN:
+                    "LEFT".equals(key)?View.FOCUS_LEFT:View.FOCUS_RIGHT;
+                View focus=getCurrentFocus();
+                View next=focus==null?null:focus.focusSearch(dir);
+                if(next!=null)next.requestFocus();
+            }
+        });
+        remoteServer.start();
+    }
+    private void remoteClick(){
+        if(cursor==null||contentRoot==null||cursor.cursorX()<0)return;
+        View target=hit(contentRoot,(int)cursor.cursorX(),(int)cursor.cursorY());
+        if(target!=null){target.requestFocus();target.performClick();}
+    }
+    private View hit(View v,int x,int y){
+        if(v==cursor||!v.isShown())return null;
+        android.graphics.Rect rect=new android.graphics.Rect();
+        if(!v.getGlobalVisibleRect(rect)||!rect.contains(x,y))return null;
+        if(v instanceof ViewGroup){
+            ViewGroup group=(ViewGroup)v;
+            for(int i=group.getChildCount()-1;i>=0;i--){
+                View found=hit(group.getChildAt(i),x,y);
+                if(found!=null)return found;
+            }
+        }
+        return v.isClickable()?v:null;
+    }
+
     private void launchApp(AppItem item) {
         try {
             PackageManager pm=getPackageManager();

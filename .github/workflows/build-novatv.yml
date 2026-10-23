@@ -1,4 +1,4 @@
-name: Nova TV APK
+name: Nova TV + Remote APKs
 on:
   push:
     branches:
@@ -18,14 +18,17 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
-      - name: Build Nova TV
-        run: gradle -p novatv --no-daemon :app:assembleDebug
-      - name: Rename APK
+      - name: Compile launcher and mobile remote
+        run: |
+          gradle -p novatv --no-daemon :app:assembleDebug
+          gradle -p novatv-remote --no-daemon :app:assembleDebug
+      - name: Prepare two APKs
         run: |
           mkdir -p out
-          cp novatv/app/build/outputs/apk/debug/app-debug.apk out/NovaTV-Hisense-Android11-v0.1.apk
+          cp novatv/app/build/outputs/apk/debug/app-debug.apk out/NovaTV-Launcher-v0.2.apk
+          cp novatv-remote/app/build/outputs/apk/debug/app-debug.apk out/NovaTV-Remote-v0.1.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: NovaTV-Hisense-APK
-          path: out/NovaTV-Hisense-Android11-v0.1.apk
+          name: NovaTV-Launcher-and-Remote
+          path: out/*.apk
           if-no-files-found: error
