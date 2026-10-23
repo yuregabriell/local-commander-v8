@@ -26,7 +26,7 @@ jobs:
         run: |
           mkdir -p out
           cp novatv/app/build/outputs/apk/debug/app-debug.apk out/NovaTV-Launcher-v0.2.apk
-          cp novatv-remote/app/build/outputs/apk/debug/app-debug.apk out/NovaTV-Remote-v0.1.apk
+          cp novatv-remote/app/build/outputs/apk/debug/app-debug.apk out/NovaTV-Remote-v0.1.1.apk
       - uses: actions/upload-artifact@v4
         with:
           name: NovaTV-Launcher-and-Remote
@@ -41,4 +41,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view "novatv-remote-v0.1" >/dev/null 2>&1 || gh release create "novatv-remote-v0.1" out/NovaTV-Remote-v0.1.apk --target "$GITHUB_SHA" --title "Nova TV Remote v0.1 (Android)" --notes "Touchpad e comando Wi-Fi para usar com Nova TV Launcher v0.2. Emparelhar pela opção de definições no launcher; funciona apenas dentro do Nova TV. Versão de teste." --prerelease --latest=false
+          gh release view "novatv-remote-v0.1.1" >/dev/null 2>&1 || gh release create "novatv-remote-v0.1.1" out/NovaTV-Remote-v0.1.1.apk --target "$GITHUB_SHA" --title "Nova TV Remote v0.1.1 (Android) - Correção" --notes "Correção da inicialização do comando Wi-Fi para Nova TV Launcher v0.2. Inclui ecrã de diagnóstico caso exista incompatibilidade no telemóvel." --prerelease --latest=false
