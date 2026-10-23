@@ -58,6 +58,7 @@ public final class RemoteServer {
                 writer.write("DENIED\n");writer.flush();return;
             }
             writer.write("OK\n");writer.flush();
+            socket.setSoTimeout(0);
             String message;
             while(running&&(message=reader.readLine())!=null) {
                 String line=message;
