@@ -1,4 +1,4 @@
-name: Nova TV Preview (Free My TV base)
+name: Nova TV v0.4 Personalized
 on:
   push:
     branches:
@@ -20,13 +20,17 @@ jobs:
         run: |
           git clone --quiet https://github.com/simbasjungles/free-my-tv.git upstream
           cd upstream
-          git checkout --quiet --detach 4d739516379976e4cc256e4106f3680d6bb94da8
+          git checkout --quiet --detach 7e6754c1887182fd29220fc605833336bc69e6a4
           test -f LICENSE && test -f build.sh && test -f app/AndroidManifest.xml
       - name: Apply safe Hisense preview adaptation
         run: |
           cp novatv-free-base/patch_safe_preview.py upstream/patch_safe_preview.py
+          cp novatv-free-base/patch_v04.py upstream/patch_v04.py
+          cp novatv-free-base/generate_assets.py upstream/generate_assets.py
           cd upstream
           python3 patch_safe_preview.py
+          python3 patch_v04.py
+          python3 generate_assets.py
           cp config.example.properties config.properties
           cat >>config.properties <<'EOF'
           city=Lisboa
@@ -46,17 +50,17 @@ jobs:
           cd upstream
           bash build.sh
           mkdir -p ../out
-          cp FreeMyTV.apk ../out/NovaTV-FreeMyTV-Preview-v0.3.apk
+          cp FreeMyTV.apk ../out/NovaTV-v0.4-Hisense.apk
           cp LICENSE ../out/MIT_LICENSE_UPSTREAM.txt
           cp ../novatv-free-base/README.md ../out/README-LEIA-ME.txt
           ls -lh ../out/
       - uses: actions/upload-artifact@v4
         with:
-          name: NovaTV-v0.3-Preview
+          name: NovaTV-v0.4-Hisense
           path: out/*
           if-no-files-found: error
       - name: Publish preview release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view "novatv-freebase-v0.3" >/dev/null 2>&1 || gh release create "novatv-freebase-v0.3" out/NovaTV-FreeMyTV-Preview-v0.3.apk out/MIT_LICENSE_UPSTREAM.txt out/README-LEIA-ME.txt --target "$GITHUB_SHA" --title "Nova TV v0.3 Preview — Free My TV Android base" --notes "Preview de design para Android TV 11. Base: simbasjungles/free-my-tv (MIT, SHA 4d739516). Inspirado também por danielthejoker18/FreeMyTvWebOS (MIT). O Home original e os serviços da Hisense não são alterados; instalação apenas como aplicação. Sem switching via ADB. Recomendações TMDB dependem de chave própria. Projeto experimental." --prerelease --latest=false
+          gh release view "novatv-freebase-v0.4" >/dev/null 2>&1 || gh release create "novatv-freebase-v0.4" out/NovaTV-v0.4-Hisense.apk out/MIT_LICENSE_UPSTREAM.txt out/README-LEIA-ME.txt --target "$GITHUB_SHA" --title "Nova TV v0.4 — Fundos, demo de filmes e favoritos" --notes "Nova TV v0.4 (Hisense 32A4HA / Android TV 11): baseada no Free My TV Android (MIT, SHA 7e6754c). Inclui 1 wallpaper fotográfico 1920x1080 16:9 (fonte Unsplash, fallback local), seleção/restauro do fundo por Home Settings > Papel de parede, três cartões de filmes e séries FICTÍCIOS offline enquanto Nova Play não está ligada, e edição nativa da dock por Settings > Shelf ou OK prolongado. Launcher original preservado, sem root, sem ADB, sem alterações aos serviços do sistema. PRE-RELEASE. Para atualizar a v0.3, desinstala-a previamente se as assinaturas diferirem." --prerelease --latest=false
