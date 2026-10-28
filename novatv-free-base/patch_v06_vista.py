@@ -119,7 +119,7 @@ s=s.replace(needle,'''        if (cards.isEmpty()) {
             c.drawText(hint, MARGIN * k, (L_CARDS_TOP + 130) * k, lCardMeta);
         }
 ''' + needle,1)
-needle="boolean own = !picksOn() && Photos.on(getContext());"
+needle="boolean own = !Recs.hasKey(getContext()) && Photos.on(getContext());"
 assert needle in s
 s=s.replace(needle,"boolean own = cards.isEmpty() && Photos.on(getContext());",1)
 
