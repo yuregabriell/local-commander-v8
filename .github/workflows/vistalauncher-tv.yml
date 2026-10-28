@@ -52,14 +52,25 @@ jobs:
           cp LICENSE app/assets/VistaLauncher_UPSTREAM_MIT_LICENSE.txt
       - name: Verify original package and native Vista integrations
         run: |
-          grep -q 'package="io.freemytv"' upstream/app/AndroidManifest.xml
-          grep -q 'android:label="VistaLauncher"' upstream/app/AndroidManifest.xml
-          grep -q 'com.vistastream.tv.homefeed' upstream/app/AndroidManifest.xml
-          grep -q 'VistaFeed.picks(context, kind)' upstream/app/src/io/freemytv/Recs.java
-          grep -q '"Animes"' upstream/app/src/io/freemytv/HomeView.java
-          grep -q 'VistaAccountActivity' upstream/app/AndroidManifest.xml
-          grep -q 'com.vistamusic.app' upstream/app/src/io/freemytv/HomeApps.java
-          grep -q 'app.vistatube.mobile.debug' upstream/app/src/io/freemytv/HomeApps.java
+          python3 - <<'PY'
+          from pathlib import Path
+          checks = {
+              "manifest package": ("upstream/app/AndroidManifest.xml", 'package="io.freemytv"'),
+              "manifest label": ("upstream/app/AndroidManifest.xml", 'android:label="VistaLauncher"'),
+              "feed authority": ("upstream/app/AndroidManifest.xml", 'com.vistastream.tv.homefeed'),
+              "feed code": ("upstream/app/src/io/freemytv/Recs.java", 'VistaFeed.picks(context, kind)'),
+              "anime tab": ("upstream/app/src/io/freemytv/HomeView.java", '"Animes"'),
+              "vista account": ("upstream/app/AndroidManifest.xml", 'VistaAccountActivity'),
+              "vista music": ("upstream/app/src/io/freemytv/HomeApps.java", 'com.vistamusic.app'),
+              "vista tube": ("upstream/app/src/io/freemytv/HomeApps.java", 'app.vistatube.mobile.debug')
+          }
+          missing = []
+          for name, (path, needle) in checks.items():
+              found = needle in Path(path).read_text(encoding="utf-8")
+              print(("PASS" if found else "FAIL") + ": " + name, flush=True)
+              if not found: missing.append(name)
+          if missing: raise SystemExit("Missing: " + ", ".join(missing))
+          PY
       - name: Build APK for Hisense Android TV
         run: |
           cd upstream
