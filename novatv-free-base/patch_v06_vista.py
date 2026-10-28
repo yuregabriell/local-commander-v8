@@ -108,6 +108,21 @@ s=s.replace(needle,'for (int i = 0; i < 4; i++) {\n            float tw = Math.m
 needle='for (int i = 0; i < 3; i++) {\n            RectF r = topRects[i];'
 assert needle in s
 s=s.replace(needle,'for (int i = 0; i < 4; i++) {\n            RectF r = topRects[i];',1)
+# Explain empty states and keep a chosen wallpaper when VS hasn't cached its catalogue yet.
+needle='''        int top = -1;
+        for (int i = 0; i < 3; i++) if (cardFocus[i].value > 0.02f'''
+assert needle in s
+s=s.replace(needle,'''        if (cards.isEmpty()) {
+            String hint = VistaFeed.installed(getContext())
+                ? "Abre o VistaStream para carregar o catálogo e as recomendações."
+                : "Instala o VistaStream nesta TV para recomendações reais.";
+            c.drawText(hint, MARGIN * k, (L_CARDS_TOP + 130) * k, lCardMeta);
+        }
+''' + needle,1)
+needle="boolean own = !picksOn() && Photos.on(getContext());"
+assert needle in s
+s=s.replace(needle,"boolean own = cards.isEmpty() && Photos.on(getContext());",1)
+
 needle='for (Recs.Pick p : recs.wanted()) recs.backdrop(p);'
 assert needle in s
 s=s.replace(needle,'''for (Recs.Pick p : cards) recs.backdrop(p);
@@ -119,7 +134,7 @@ replace("Recs.java", '        List<Pick> list = new ArrayList<>();\n        if (
         '''        List<Pick> list = new ArrayList<>();
         if (VistaFeed.installed(context)) {
             List<Pick> fromVista = VistaFeed.picks(context, kind);
-            if (!fromVista.isEmpty() || "anime".equals(kind)) return fromVista;
+            return fromVista; // never show fictional demos when VistaStream is installed
         }
         if (!hasKey(context)) return NovaDemo.picks(kind);''')
 replace("Recs.java",'SERVICE_NAME.put("netflix", "Netflix");',
