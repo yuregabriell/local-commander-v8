@@ -124,6 +124,20 @@ final class VistaFeed {
         return out;
     }
 
+    /** Bounded, read-only snapshot used by VistaHub's TV-remote-friendly rows. */
+    static List<Entry> section(Context context, String section, int maxItems) {
+        refresh(context);
+        List<Entry> copy = new ArrayList<>();
+        if (maxItems <= 0 || maxItems > 30) return copy;
+        for (Entry item : entries) {
+            if (section.equals(item.section) && item.title != null && !item.title.isEmpty()) {
+                copy.add(item);
+                if (copy.size() >= maxItems) break;
+            }
+        }
+        return copy;
+    }
+
     static boolean isReady(Context context) {
         return installed(context) && !entries.isEmpty();
     }
