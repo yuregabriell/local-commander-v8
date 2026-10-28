@@ -29,12 +29,14 @@ jobs:
           cp novatv-free-base/patch_v04.py upstream/patch_v04.py
           cp novatv-free-base/patch_v05.py upstream/patch_v05.py
           cp novatv-free-base/patch_v06_vista.py upstream/patch_v06_vista.py
+          cp novatv-free-base/patch_v07_hub.py upstream/patch_v07_hub.py
           cp novatv-free-base/generate_assets.py upstream/generate_assets.py
           cd upstream
           python3 patch_safe_preview.py
           python3 patch_v04.py
           python3 patch_v05.py
           python3 patch_v06_vista.py
+          python3 patch_v07_hub.py
           python3 generate_assets.py
           cp config.example.properties config.properties
           cat >> config.properties <<'EOF'
@@ -60,6 +62,11 @@ jobs:
               "feed authority": ("upstream/app/AndroidManifest.xml", 'com.vistastream.tv.homefeed'),
               "feed code": ("upstream/app/src/io/freemytv/Recs.java", 'VistaFeed.picks(context, kind)'),
               "anime tab": ("upstream/app/src/io/freemytv/HomeView.java", '"Animes"'),
+              "hub in manifest": ("upstream/app/AndroidManifest.xml", "VistaHubActivity"),
+              "hub in native shelf": ("upstream/app/src/io/freemytv/HomeApps.java", '"vista-hub"'),
+              "hub resume section": ("upstream/app/src/io/freemytv/VistaHubActivity.java", '"Continuar a assistir"'),
+              "hub anime section": ("upstream/app/src/io/freemytv/VistaHubActivity.java", '"Animes"'),
+              "hub feed categories": ("upstream/app/src/io/freemytv/VistaFeed.java", 'static List<Entry> section('),
               "vista account": ("upstream/app/AndroidManifest.xml", 'VistaAccountActivity'),
               "vista music": ("upstream/app/src/io/freemytv/HomeApps.java", 'com.vistamusic.app'),
               "vista tube": ("upstream/app/src/io/freemytv/HomeApps.java", 'app.vistatube.mobile.debug')
@@ -76,23 +83,23 @@ jobs:
           cd upstream
           bash build.sh
           mkdir -p ../out
-          cp FreeMyTV.apk ../out/VistaLauncher-TV-v1.0.1-preview.apk
+          cp FreeMyTV.apk ../out/VistaLauncher-TV-v1.1.0-preview.apk
           cp LICENSE ../out/MIT_LICENSE_UPSTREAM.txt
           cp ../novatv-free-base/README.md ../out/NOVA_TV_BASE_README.txt
-          cd ../out && sha256sum VistaLauncher-TV-v1.0.1-preview.apk > SHA256SUMS.txt
+          cd ../out && sha256sum VistaLauncher-TV-v1.1.0-preview.apk > SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: VistaLauncher-TV-v1.0.1-APK
+          name: VistaLauncher-TV-v1.1.0-APK
           path: out/*
           if-no-files-found: error
       - name: Publish prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="vistalauncher-tv-v1.0.1"
-          NOTES="VistaLauncher v1 (pre-release): preserva a base Nova TV v0.5 e o pacote io.freemytv. Adiciona shelf nativa para VistaStream, VistaTube, VistaMusic e VistaBrowser, ecrã Vista ID opcional, Home com 4 separadores (Para ti, Filmes, Séries, Animes), recomendações reais do catálogo local do VistaStream sem demonstrações fictícias quando VS instalado, e um título de Continuar a assistir quando existir progresso não concluído. Requer VistaStream 0.16+ instalado na mesma TV para o feed; requer Vista ID 0.2+ para conta local. Não inclui os 4 apps dentro do APK, nem sincronização cloud; cada app deve ser instalado separadamente. Esta versão NÃO substitui à força o Home original da TV. Teste com comando da televisão."
+          TAG="vistalauncher-tv-v1.1.0"
+          NOTES="VistaLauncher v1.1 (pre-release): Native Vista Hub TV with remote-ready app cards, curated VistaStream movies, series, anime and continue watching. Installed apps launch with their existing identity, storage and playback. Updated v0.16+ VistaStream supports deep-linking into TV details; no apps are bundled or silently installed. Preserves original NovaTV package, wallpaper, highlights and layout. Original details: preserva a base Nova TV v0.5 e o pacote io.freemytv. Adiciona shelf nativa para VistaStream, VistaTube, VistaMusic e VistaBrowser, ecrã Vista ID opcional, Home com 4 separadores (Para ti, Filmes, Séries, Animes), recomendações reais do catálogo local do VistaStream sem demonstrações fictícias quando VS instalado, e um título de Continuar a assistir quando existir progresso não concluído. Requer VistaStream 0.16+ instalado na mesma TV para o feed; requer Vista ID 0.2+ para conta local. Não inclui os 4 apps dentro do APK, nem sincronização cloud; cada app deve ser instalado separadamente. Esta versão NÃO substitui à força o Home original da TV. Teste com comando da televisão."
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" out/VistaLauncher-TV-v1.0.1-preview.apk out/SHA256SUMS.txt --clobber
+            gh release upload "$TAG" out/VistaLauncher-TV-v1.1.0-preview.apk out/SHA256SUMS.txt --clobber
           else
-            gh release create "$TAG" out/VistaLauncher-TV-v1.0.1-preview.apk out/SHA256SUMS.txt out/MIT_LICENSE_UPSTREAM.txt out/NOVA_TV_BASE_README.txt --target "$GITHUB_SHA" --title "VistaLauncher TV v1.0.1 — Vista ecosystem (preview)" --notes "$NOTES" --prerelease --latest=false
+            gh release create "$TAG" out/VistaLauncher-TV-v1.1.0-preview.apk out/SHA256SUMS.txt out/MIT_LICENSE_UPSTREAM.txt out/NOVA_TV_BASE_README.txt --target "$GITHUB_SHA" --title "VistaLauncher TV v1.1.0 — Native Vista Hub (preview)" --notes "$NOTES" --prerelease --latest=false
           fi
