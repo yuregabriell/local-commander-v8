@@ -54,4 +54,15 @@ assert (root / "VistaFeed.java").exists()
 assert "section(Context context, String section" in (root / "VistaFeed.java").read_text(encoding="utf-8")
 assert "VistaFeed.picks(context, kind)" in (root / "Recs.java").read_text(encoding="utf-8")
 assert '"Animes"' in (root / "HomeView.java").read_text(encoding="utf-8")
+# If the user customized the Highlights shelf, do not change that arrangement.
+# The hub stays accessible from the launcher Settings menu even with a full shelf.
+settings = root / "SettingsActivity.java"
+code = settings.read_text(encoding="utf-8")
+old = 'else activity.startActivity(new Intent(activity, VistaAccountActivity.class));'
+assert code.count(old) == 1, "Vista ID settings entry not found"
+code = code.replace(old, 'else activity.startActivity(new Intent(activity, VistaHubActivity.class));', 1)
+assert code.count('"Vista ID"') >= 1
+code = code.replace('"Vista ID"', '"Vista Hub"')
+settings.write_text(code, encoding="utf-8")
+
 print("PASS VistaLauncher v1.1: 4 app entry points, TV hub, anime, continue and D-pad navigation.")
