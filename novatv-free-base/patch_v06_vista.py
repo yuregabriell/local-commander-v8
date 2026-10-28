@@ -114,13 +114,13 @@ s=s.replace(needle,'''for (Recs.Pick p : cards) recs.backdrop(p);
 p.write_text(s,encoding="utf-8")
 
 # Favor VS's actual catalog over third-party TMDB service recommendations.
-replace("Recs.java", '        List<Pick> list = new ArrayList<>();\n        if (!hasKey(context)) return list;',
+replace("Recs.java", '        List<Pick> list = new ArrayList<>();\n        if (!hasKey(context)) return NovaDemo.picks(kind);',
         '''        List<Pick> list = new ArrayList<>();
         if (VistaFeed.installed(context)) {
             List<Pick> fromVista = VistaFeed.picks(context, kind);
             if (!fromVista.isEmpty() || "anime".equals(kind)) return fromVista;
         }
-        if (!hasKey(context)) return list;''')
+        if (!hasKey(context)) return NovaDemo.picks(kind);''')
 replace("Recs.java",'SERVICE_NAME.put("netflix", "Netflix");',
     'SERVICE_NAME.put("vistastream", "VistaStream");\n        SERVICE_NAME.put("netflix", "Netflix");')
 replace("Recs.java",'return new File(new File(context.getCacheDir(), "recs"), p.backdrop.replace("/", ""));',
