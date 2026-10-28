@@ -76,23 +76,23 @@ jobs:
           cd upstream
           bash build.sh
           mkdir -p ../out
-          cp FreeMyTV.apk ../out/VistaLauncher-TV-v1.0.0-preview.apk
+          cp FreeMyTV.apk ../out/VistaLauncher-TV-v1.0.1-preview.apk
           cp LICENSE ../out/MIT_LICENSE_UPSTREAM.txt
           cp ../novatv-free-base/README.md ../out/NOVA_TV_BASE_README.txt
-          cd ../out && sha256sum VistaLauncher-TV-v1.0.0-preview.apk > SHA256SUMS.txt
+          cd ../out && sha256sum VistaLauncher-TV-v1.0.1-preview.apk > SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: VistaLauncher-TV-v1.0.0-APK
+          name: VistaLauncher-TV-v1.0.1-APK
           path: out/*
           if-no-files-found: error
       - name: Publish prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="vistalauncher-tv-v1.0.0"
-          NOTES="VistaLauncher v1 (pre-release): preserva a base Nova TV v0.5 e o pacote io.freemytv. Adiciona shelf nativa para VistaStream, VistaTube, VistaMusic e VistaBrowser, ecrã Vista ID opcional, Home com 4 separadores (Para ti, Filmes, Séries, Animes), recomendações do catálogo local do VistaStream, e um título de Continuar a assistir quando existir progresso não concluído. Requer VistaStream 0.16+ instalado na mesma TV para o feed; requer Vista ID 0.2+ para conta local. Não inclui os 4 apps dentro do APK, nem sincronização cloud; cada app deve ser instalado separadamente. Esta versão NÃO substitui à força o Home original da TV. Teste com comando da televisão."
+          TAG="vistalauncher-tv-v1.0.1"
+          NOTES="VistaLauncher v1 (pre-release): preserva a base Nova TV v0.5 e o pacote io.freemytv. Adiciona shelf nativa para VistaStream, VistaTube, VistaMusic e VistaBrowser, ecrã Vista ID opcional, Home com 4 separadores (Para ti, Filmes, Séries, Animes), recomendações reais do catálogo local do VistaStream sem demonstrações fictícias quando VS instalado, e um título de Continuar a assistir quando existir progresso não concluído. Requer VistaStream 0.16+ instalado na mesma TV para o feed; requer Vista ID 0.2+ para conta local. Não inclui os 4 apps dentro do APK, nem sincronização cloud; cada app deve ser instalado separadamente. Esta versão NÃO substitui à força o Home original da TV. Teste com comando da televisão."
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" out/VistaLauncher-TV-v1.0.0-preview.apk out/SHA256SUMS.txt --clobber
+            gh release upload "$TAG" out/VistaLauncher-TV-v1.0.1-preview.apk out/SHA256SUMS.txt --clobber
           else
-            gh release create "$TAG" out/VistaLauncher-TV-v1.0.0-preview.apk out/SHA256SUMS.txt out/MIT_LICENSE_UPSTREAM.txt out/NOVA_TV_BASE_README.txt --target "$GITHUB_SHA" --title "VistaLauncher TV v1.0.0 — Vista ecosystem (preview)" --notes "$NOTES" --prerelease --latest=false
+            gh release create "$TAG" out/VistaLauncher-TV-v1.0.1-preview.apk out/SHA256SUMS.txt out/MIT_LICENSE_UPSTREAM.txt out/NOVA_TV_BASE_README.txt --target "$GITHUB_SHA" --title "VistaLauncher TV v1.0.1 — Vista ecosystem (preview)" --notes "$NOTES" --prerelease --latest=false
           fi
