@@ -27,6 +27,7 @@ assert 'package="io.freemytv"' in m
 assert 'android:versionCode="2"' in m
 m = m.replace('android:versionCode="2"', 'android:versionCode="3"',1)
 m = m.replace('android:versionName="1.1"', 'android:versionName="1.2-vistalauncher"',1)
+m = m.replace('android:label="Nova TV Preview"', 'android:label="VistaLauncher"')
 m = m.replace('android:label="Free My TV"', 'android:label="VistaLauncher"')
 queries = '''        <!-- Discover the installed, native Vista apps and the VS same-device home feed. -->
         <package android:name="com.vistastream.tv.debug" />
